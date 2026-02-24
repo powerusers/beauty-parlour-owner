@@ -1,7 +1,7 @@
 {
   "name": "beauty-parlour-owner-dashboard",
   "version": "1.0.0",
-  "description": "Owner Dashboard for Glow & Grace Beauty Parlour",
+  "description": "Owner Dashboard for Crazy Beauty Parlour",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

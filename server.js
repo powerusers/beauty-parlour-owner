@@ -16,7 +16,7 @@ app.use(express.static(path.join(__dirname, "dist")));
 app.get("/api/settings", async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM settings LIMIT 1");
-    res.json(rows[0] || { parlour_name: "Glow & Grace", parlour_open: true });
+    res.json(rows[0] || { parlour_name: "Crazy Beauty Parlour", parlour_open: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

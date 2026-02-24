@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS settings (
   id SERIAL PRIMARY KEY,
-  parlour_name VARCHAR(255) NOT NULL DEFAULT 'Glow & Grace',
+  parlour_name VARCHAR(255) NOT NULL DEFAULT 'Crazy Beauty Parlour',
   parlour_open BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 -- Seed default settings
 INSERT INTO settings (parlour_name, parlour_open)
-VALUES ('Glow & Grace', true)
+VALUES ('Crazy Beauty Parlour', true)
 ON CONFLICT DO NOTHING;
 
 -- Seed default hours
