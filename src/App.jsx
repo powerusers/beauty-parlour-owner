@@ -262,6 +262,23 @@ export default function App() {
     }
   };
   
+  // Helpers
+  const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const t2m = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+  const m2t = m => `${Math.floor(m/60).toString().padStart(2,"0")}:${(m%60).toString().padStart(2,"0")}`;
+  const fmt12 = t => { const [h,m] = t.split(":").map(Number); return `${h%12||12}:${m.toString().padStart(2,"0")} ${h>=12?"PM":"AM"}`; };
+  const fmtDate = d => new Date(d).toLocaleDateString("en-IN",{weekday:"short",month:"short",day:"numeric"});
+
+  const svcName = (sid) => {
+    const s = services.find(x => x.id === sid);
+    return s ? s.name : sid;
+  };
+
+  const confirmed = bookings.filter(b => b.status === "confirmed").length;
+  const completed = bookings.filter(b => b.status === "completed").length;
+  const revenue = bookings.filter(b => b.status === "completed").reduce((s, b) => s + (Number(b.amount_charged) || 0), 0);
+
   const getDateChips = () => {
     const chips = [];
     const today = new Date();
@@ -271,7 +288,7 @@ export default function App() {
       const dateStr = d.toISOString().split('T')[0];
       chips.push({
         dateStr,
-        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()],
+        day: SHORT[d.getDay()],
         num: d.getDate(),
         count: counts[dateStr] || 0
       });
@@ -300,27 +317,31 @@ export default function App() {
       <div className={`ow-status ${settings.parlour_open ? 'op' : 'cl'}`}>
         <div className="ow-status-left">
           <div className="ow-status-dot"></div>
-          <div className="ow-status-txt">{settings.parlour_open ? 'Open' : 'Closed'}</div>
+          <div className="ow-status-txt">{settings.parlour_open ? 'Parlour is Open' : 'Parlour is Closed'}</div>
         </div>
         <button className={`tog ${settings.parlour_open ? 'on' : ''}`} onClick={toggleParlourstatus}></button>
       </div>
       
       <div className="ow-nav">
-        <button className={`ow-tab ${tab === 'bookings' ? 'on' : ''}`} onClick={() => setTab('bookings')}>Bookings</button>
-        <button className={`ow-tab ${tab === 'services' ? 'on' : ''}`} onClick={() => setTab('services')}>Services</button>
-        <button className={`ow-tab ${tab === 'hours' ? 'on' : ''}`} onClick={() => setTab('hours')}>Hours</button>
+        <button className={`ow-tab ${tab === 'bookings' ? 'on' : ''}`} onClick={() => setTab('bookings')}>📋 Bookings</button>
+        <button className={`ow-tab ${tab === 'services' ? 'on' : ''}`} onClick={() => setTab('services')}>💇 Services</button>
+        <button className={`ow-tab ${tab === 'hours' ? 'on' : ''}`} onClick={() => setTab('hours')}>🕐 Hours</button>
       </div>
       
       {tab === 'bookings' && (
         <>
           <div className="stats">
             <div className="stat accent">
-              <div className="stat-n">{bookings.length}</div>
-              <div className="stat-l">Today</div>
+              <div className="stat-n">{confirmed}</div>
+              <div className="stat-l">Upcoming</div>
             </div>
             <div className="stat green">
-              <div className="stat-n">{bookings.filter(b => b.status === 'completed').length}</div>
+              <div className="stat-n">{completed}</div>
               <div className="stat-l">Completed</div>
+            </div>
+            <div className="stat" style={{gridColumn:"1/-1"}}>
+              <div className="stat-n" style={{color:"var(--amber)"}}>₹{revenue.toLocaleString("en-IN")}</div>
+              <div className="stat-l">Today's Revenue</div>
             </div>
           </div>
           
@@ -331,36 +352,47 @@ export default function App() {
                 className={`ow-dc ${chip.dateStr === selectedDate ? 'on' : ''}`}
                 onClick={() => setSelectedDate(chip.dateStr)}
               >
-                <div className="d">{chip.day}</div>
-                <div className="n">{chip.num}</div>
-                <div className="c">{chip.count}</div>
+                <span className="d">{chip.day}</span>
+                <span className="n">{chip.num}</span>
+                {chip.count > 0 && <span className="c">{chip.count} apt</span>}
               </div>
             ))}
           </div>
           
-          <div style={{padding: '0 20px'}}>
+          <div style={{padding:"0 20px",marginTop:16}}>
             {bookings.length === 0 ? (
-              <div className="empty"><div className="empty-i">📅</div><div className="empty-t">No bookings</div></div>
+              <div className="empty">
+                <div className="empty-i">📋</div>
+                <div className="empty-t">No bookings for {fmtDate(selectedDate)}</div>
+              </div>
             ) : (
-              bookings.map(b => (
-                <div key={b.id} className="bk-item">
+              bookings.map((b, i) => (
+                <div key={b.id} className="bk-item" style={{animationDelay:`${i*0.05}s`}}>
                   <div className="bk-top">
                     <div>
                       <div className="bk-name">{b.client_name}</div>
-                      <div className="bk-phone">{b.client_phone}</div>
+                      <div className="bk-phone">📞 {b.client_phone}</div>
                     </div>
                     <span className={`bk-badge ${b.status}`}>{b.status}</span>
                   </div>
                   <div className="bk-svcs">
-                    {b.services && b.services.map((s, i) => <span key={i} className="bk-tag">{s}</span>)}
+                    {b.services && b.services.map((sid, idx) => (
+                      <span key={idx} className="bk-tag">{svcName(sid)}</span>
+                    ))}
                   </div>
-                  <div className="bk-time">🕐 {b.start_time}</div>
-                  {b.amount_charged && <div className="bk-charged">Rs {b.amount_charged}</div>}
-                  <div className="bk-actions">
-                    {b.status === 'confirmed' && (
-                      <button className="btn btn-green" onClick={() => setCompleteModal(b)}>Complete</button>
-                    )}
+                  <div className="bk-time">
+                    🕐 {fmt12(b.start_time)} — {fmt12(m2t(t2m(b.start_time) + b.total_duration))}
+                    <span style={{color:"var(--text3)"}}>({b.total_duration} min)</span>
                   </div>
+                  {b.status === "completed" && b.amount_charged != null && (
+                    <div className="bk-charged">₹{Number(b.amount_charged).toLocaleString("en-IN")} charged</div>
+                  )}
+                  {b.status === "confirmed" && (
+                    <div className="bk-actions">
+                      <button className="btn btn-green" onClick={() => setCompleteModal(b)}>✓ Complete</button>
+                      <button className="btn btn-red" onClick={() => updateBooking(b.id, 'cancelled')}>✕ Cancel</button>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -379,7 +411,7 @@ export default function App() {
                 <div key={s.id} className={`svc-row ${!s.active ? 'svc-inactive' : ''}`}>
                   <div className="svc-info">
                     <div className="svc-name">{s.name}</div>
-                    <div className="svc-meta">{s.duration} min • Rs {s.price}</div>
+                    <div className="svc-meta">{s.duration} min • ₹{s.price}</div>
                   </div>
                   <div className="svc-actions">
                     <button className="btn btn-ghost" style={{padding: '6px 10px'}} onClick={() => setEditServiceModal({mode: 'edit', ...s})}>Edit</button>
@@ -393,8 +425,19 @@ export default function App() {
       )}
       
       {tab === 'hours' && (
+        <>
         <div className="ow-crd">
-          <div className="ow-crd-t">Operating Hours</div>
+          <div className="ow-crd-t">Parlour Status</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0"}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:14}}>Open for Bookings</div>
+              <div style={{fontSize:12,color:"var(--text2)",marginTop:2}}>When closed, clients cannot book</div>
+            </div>
+            <button className={`tog ${settings.parlour_open?"on":""}`} onClick={toggleParlourstatus}></button>
+          </div>
+        </div>
+        <div className="ow-crd">
+          <div className="ow-crd-t">Opening Hours</div>
           {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => {
             const h = hours[day] || { open: true, start: '09:00', end: '18:00' };
             return (
@@ -427,14 +470,27 @@ export default function App() {
             );
           })}
         </div>
+        </>
       )}
       
       {completeModal && (
         <div className="modal-bg" onClick={() => setCompleteModal(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-bar"></div>
-            <div className="modal-t">Complete Booking</div>
-            <CompleteForm 
+            <div className="modal-t">Complete Appointment</div>
+            <div style={{marginBottom:16}}>
+              <div className="crow"><span className="crow-l">Client</span><span className="crow-v">{completeModal.client_name}</span></div>
+              <div className="crow"><span className="crow-l">Phone</span><span className="crow-v">{completeModal.client_phone}</span></div>
+              <div className="crow"><span className="crow-l">Time</span><span className="crow-v">{fmt12(completeModal.start_time)}</span></div>
+              <div style={{marginTop:10}}>
+                <div className="ow-crd-st">Services Done</div>
+                {completeModal.services && completeModal.services.map((sid, idx) => {
+                  const svc = services.find(x => x.id === sid);
+                  return svc ? <div key={idx} className="crow"><span>{svc.name}</span><span className="crow-v">{svc.duration} min</span></div> : null;
+                })}
+              </div>
+            </div>
+            <CompleteForm
               booking={completeModal}
               onSubmit={(amt) => updateBooking(completeModal.id, 'completed', amt)}
               onClose={() => setCompleteModal(null)}
@@ -468,28 +524,28 @@ export default function App() {
 
 function CompleteForm({ booking, onSubmit, onClose }) {
   const [amount, setAmount] = useState(booking.amount_charged || '');
-  
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(amount); }}>
+    <>
       <div className="igrp">
         <label className="ilbl">Amount Charged</label>
         <div className="amt-wrap">
-          <span className="amt-sym">Rs</span>
-          <input 
-            type="number" 
-            className="ifld" 
-            placeholder="0" 
+          <span className="amt-sym">₹</span>
+          <input
+            type="number"
+            className="ifld"
+            placeholder="Enter amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            required
+            style={{flex:1}}
           />
         </div>
       </div>
-      <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-        <button type="button" className="btn btn-ghost btn-full" onClick={onClose}>Cancel</button>
-        <button type="submit" className="btn btn-teal btn-full">Complete</button>
+      <div style={{display:"flex",gap:10}}>
+        <button className="btn btn-ghost" style={{flex:1,justifyContent:"center",padding:12}} onClick={onClose}>Cancel</button>
+        <button className="btn btn-teal" style={{flex:1,justifyContent:"center",padding:12}} onClick={() => onSubmit(amount)} disabled={!amount}>✓ Mark Completed</button>
       </div>
-    </form>
+    </>
   );
 }
 
@@ -511,7 +567,7 @@ function ServiceForm({ service, onSubmit, onClose }) {
         <input type="number" className="ifld" value={duration} onChange={(e) => setDuration(e.target.value)} required />
       </div>
       <div className="igrp">
-        <label className="ilbl">Price (Rs)</label>
+        <label className="ilbl">Price (₹)</label>
         <input type="number" className="ifld" value={price} onChange={(e) => setPrice(e.target.value)} required />
       </div>
       <div className="igrp">
