@@ -45,6 +45,9 @@ INSERT INTO settings (parlour_name, parlour_open)
 VALUES ('Crazy Beauty Parlour', true)
 ON CONFLICT DO NOTHING;
 
+-- Ensure parlour name is up to date
+UPDATE settings SET parlour_name = 'Crazy Beauty Parlour' WHERE id = 1;
+
 -- Seed default hours
 INSERT INTO hours (day, is_open, start_time, end_time) VALUES
   ('Sunday', false, '10:00', '17:00'),
